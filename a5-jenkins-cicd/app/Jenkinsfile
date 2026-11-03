@@ -1,0 +1,32 @@
+// Declarative pipeline: GitHub -> build image -> run container -> verify  (Q17-20)
+pipeline {
+    agent any
+    environment {
+        IMAGE = "myapp:v1"
+        CONTAINER = "myapp"
+    }
+    stages {
+        stage('Hello') {
+            steps { echo 'Starting pipeline...' }
+        }
+        stage('Checkout') {
+            steps { checkout scm }            // clones the repo that holds this Jenkinsfile
+        }
+        stage('Build Image') {
+            steps { sh 'docker build -t $IMAGE .' }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'docker rm -f $CONTAINER || true'      // stop+remove old container if present
+                sh 'docker run -d --name $CONTAINER -p 5000:5000 $IMAGE'
+            }
+        }
+        stage('Verify') {
+            steps {
+                sh 'sleep 3'
+                sh 'docker ps --filter name=$CONTAINER'
+                sh 'curl -s http://localhost:5000'
+            }
+        }
+    }
+}
